@@ -109,3 +109,14 @@ def load_fixture(payload: dict[str, Any]) -> CloudAttackPathAnalyzer:
     resources = [Resource(**item) for item in payload["resources"]]
     relations = [Relation(**item) for item in payload["relations"]]
     return CloudAttackPathAnalyzer(resources, relations)
+
+
+def summarize_resource_exposure(analyzer: CloudAttackPathAnalyzer) -> dict[str, int]:
+    """Return deterministic fixture coverage metrics for analyst reports."""
+    return {
+        "resource_count": len(analyzer.resources),
+        "relation_count": analyzer.graph.number_of_edges(),
+        "public_resource_count": sum(resource.public for resource in analyzer.resources.values()),
+        "sensitive_resource_count": sum(resource.sensitive for resource in analyzer.resources.values()),
+        "validation_warning_count": len(analyzer.graph_warnings()),
+    }

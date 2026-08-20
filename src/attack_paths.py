@@ -43,10 +43,20 @@ class CloudAttackPathAnalyzer:
     def __init__(self, resources: list[Resource], relations: list[Relation]) -> None:
         self.resources = {item.resource_id: item for item in resources}
         self.graph = nx.DiGraph()
+        self.validation_warnings: list[str] = []
         for resource in resources:
             self.graph.add_node(resource.resource_id, **asdict(resource))
         for relation in relations:
+            if relation.source not in self.resources or relation.target not in self.resources:
+                self.validation_warnings.append(
+                    f"ignored relation with unknown resource: {relation.source}->{relation.target}"
+                )
+                continue
             self.graph.add_edge(relation.source, relation.target, relation=relation.relation, weight=relation.weight)
+
+    def graph_warnings(self) -> tuple[str, ...]:
+        """Return deterministic, non-sensitive fixture validation warnings."""
+        return tuple(self.validation_warnings)
 
     def find_paths(self, start_kinds: set[str] | None = None, max_hops: int = 6) -> list[PathFinding]:
         starts = [rid for rid, res in self.resources.items() if res.public or (start_kinds and res.kind in start_kinds)]
@@ -83,6 +93,16 @@ class CloudAttackPathAnalyzer:
                         )
                     )
         return sorted(findings, key=lambda item: item.score, reverse=True)
+
+
+def summarize_findings(findings: list[PathFinding]) -> dict[str, Any]:
+    """Return a compact analyst summary without exposing raw cloud records."""
+    scores = [finding.score for finding in findings]
+    return {
+        "finding_count": len(findings),
+        "high_priority_count": sum(score >= 0.7 for score in scores),
+        "top_score": max(scores, default=0.0),
+    }
 
 
 def load_fixture(payload: dict[str, Any]) -> CloudAttackPathAnalyzer:

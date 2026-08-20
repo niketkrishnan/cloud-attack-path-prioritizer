@@ -31,3 +31,7 @@ The starter fixture includes public and sensitive resources plus trust edges. Th
 ## Limitations
 
 Cloud providers differ in IAM semantics, network behavior, and resource types. This MVP is provider-neutral and intentionally small. It is a portfolio laboratory, not a replacement for a cloud-native posture-management product.
+
+## Development milestones
+
+The repository history is organized into incremental documentation, implementation, testing, evaluation, and release milestones.

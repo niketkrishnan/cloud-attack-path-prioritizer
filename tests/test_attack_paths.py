@@ -1,4 +1,4 @@
-from attack_paths import CloudAttackPathAnalyzer, Relation, Resource
+from attack_paths import CloudAttackPathAnalyzer, Relation, Resource, summarize_findings
 
 
 def test_finds_public_to_sensitive_path():
@@ -36,3 +36,18 @@ def test_dangling_relations_are_reported_and_ignored():
         "ignored relation with unknown resource: public-api->missing-db",
     )
     assert analyzer.find_paths() == []
+
+
+def test_finding_summary_is_bounded_and_explainable():
+    findings = CloudAttackPathAnalyzer(
+        [
+            Resource("public-api", "service", 0.4, public=True),
+            Resource("db", "database", 1.0, sensitive=True),
+        ],
+        [Relation("public-api", "db", "network_reaches")],
+    ).find_paths()
+    assert summarize_findings(findings) == {
+        "finding_count": 1,
+        "high_priority_count": 1,
+        "top_score": findings[0].score,
+    }

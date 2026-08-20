@@ -1,0 +1,17 @@
+{
+  "resources": [
+    {"resource_id":"public-api","kind":"load_balancer","criticality":0.7,"public":true,"sensitive":false},
+    {"resource_id":"app-role","kind":"role","criticality":0.6,"public":false,"sensitive":false},
+    {"resource_id":"metadata-service","kind":"metadata","criticality":0.8,"public":false,"sensitive":false},
+    {"resource_id":"prod-db","kind":"database","criticality":1.0,"public":false,"sensitive":true},
+    {"resource_id":"public-bucket","kind":"storage","criticality":0.9,"public":true,"sensitive":true},
+    {"resource_id":"secure-logs","kind":"storage","criticality":0.4,"public":false,"sensitive":false}
+  ],
+  "relations": [
+    {"source":"public-api","target":"app-role","relation":"network_reaches"},
+    {"source":"app-role","target":"metadata-service","relation":"can_read"},
+    {"source":"metadata-service","target":"app-role","relation":"assumes"},
+    {"source":"app-role","target":"prod-db","relation":"can_admin"},
+    {"source":"public-api","target":"secure-logs","relation":"network_reaches"}
+  ]
+}

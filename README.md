@@ -1,52 +1,61 @@
-# Cloud Attack-Path and Misconfiguration Prioritization Engine
+# Cloud Attack-Path and Misconfiguration Prioritizer
 
 [![CI](https://github.com/niketkrishnan/cloud-attack-path-prioritizer/actions/workflows/ci.yml/badge.svg)](https://github.com/niketkrishnan/cloud-attack-path-prioritizer/actions/workflows/ci.yml)
 
-A read-only graph analyzer for local cloud-configuration fixtures. It models public exposure, identities, trust relationships, network reachability, and sensitive resources, then ranks attack paths using explainable factors.
+A read-only graph analyzer for cloud-configuration fixtures. Instead of listing isolated misconfigurations, it asks the more useful security question: **can an exposed entry point reach a sensitive asset through trust or privilege transitions?**
 
-> **Authorized-use notice:** The analyzer reads local configuration fixtures only. It does not scan, authenticate to, or modify cloud accounts.
+## One finding, end to end
 
-## Run locally
+The committed example models **6 resources** and **5 relations**. Its highest-ranked path is:
+
+```text
+public-api -> app-role -> prod-db
+score: 1.0
+reasons: public start, sensitive destination, multiple trust transitions
+remediation: remove public exposure, constrain the trust edge, and apply least privilege
+```
+
+This is the exact local output in [`artifacts/attack_paths.json`](artifacts/attack_paths.json). It is a read-only fixture result, not evidence of exploitability in a real account.
+
+## Try it locally
 
 ```bash
-python3 -m venv .venv
-. .venv/bin/activate
 python -m pip install -e '.[dev]'
 python evaluate.py
 pytest
 ```
 
-## Architecture
+Review [`src/attack_paths.py`](src/attack_paths.py) with [`tests/test_attack_paths.py`](tests/test_attack_paths.py). The tests make graph validation, path reachability, score factors, and remediation text inspectable.
 
-```text
-JSON/Terraform-style fixture -> normalized resources/relations -> directed graph
-                                                        |
-                                           path search to sensitive assets
-                                                        |
-                                      explainable score + remediation report
+## From configuration to prioritization
+
+```mermaid
+flowchart TD
+    A[Provider-style fixture] --> B[Resource normalization]
+    A --> C[Trust and reachability edges]
+    B --> D[Directed security graph]
+    C --> D
+    D --> E[Paths to sensitive assets]
+    E --> F[Explainable risk score]
+    F --> G[Ranked remediation]
 ```
 
-## Evaluation plan
+The abstraction is intentionally provider-neutral, but the implementation does not pretend that AWS IAM, Azure RBAC, and network controls have identical semantics. Provider-specific parsers and validation are required before operational use.
 
-The starter fixture includes public and sensitive resources plus trust edges. The next milestone will add secure and vulnerable Terraform fixtures, expected-path labels, parser coverage, path coverage, false-path rate, and sensitivity analysis for asset criticality and exposure.
+## What makes the result actionable
 
-## Limitations
+A path is ranked using visible factors such as public exposure, asset sensitivity, privilege transitions, and criticality. The output carries both the path and the remediation sentence, so a reviewer can trace the score back to graph facts rather than a hidden severity label.
 
-Cloud providers differ in IAM semantics, network behavior, and resource types. This MVP is provider-neutral and intentionally small. It is a portfolio laboratory, not a replacement for a cloud-native posture-management product.
+## Scope and next validation
 
-## Development milestones
+The analyzer never authenticates to cloud accounts or changes resources. The next credible step is not a larger marketing claim; it is a pair of provider-labelled fixtures with expected-path labels and tests for false paths, parser errors, and path coverage.
 
-The repository history is organized into incremental documentation, implementation, testing, evaluation, and release milestones.
+## Continue through the portfolio
 
+- [Explainable AI SOC Detection](https://github.com/niketkrishnan/explainable-ai-soc) — hybrid rules and anomaly scoring.
+- [LLM Firewall and RAG Security Lab](https://github.com/niketkrishnan/llm-firewall-rag-security-lab) — trust boundaries for AI applications.
+- [SBOM Supply-Chain Intelligence](https://github.com/niketkrishnan/sbom-supply-chain-intelligence) — software dependency risk decisions.
+- [Identity Compromise Detector](https://github.com/niketkrishnan/identity-compromise-detector) — explainable identity risk.
+- [Portfolio site](https://github.com/niketkrishnan/HTML-Website) — project overview and contact details.
 
-## Reviewer quickstart
-
-Run `python evaluate.py`, inspect `artifacts/attack_paths.json`, and read `src/attack_paths.py` alongside `tests/test_attack_paths.py`. Reviewers can trace each ranked path to public exposure, sensitive-resource reachability, privilege transitions, criticality, and remediation text.
-
-## What I learned
-
-A cloud misconfiguration becomes more actionable when it is connected to a reachable sensitive asset. Graph analysis makes that relationship visible, while validation warnings and bounded summaries keep uncertain fixture data from being mistaken for provider truth.
-
-## Limitations
-
-The analyzer is provider-neutral and reads only local fixtures. It does not authenticate to clouds, infer every IAM semantic, or prove exploitability. Production use would require provider-specific parsers, asset inventory freshness, authorization review, and calibrated risk validation.
+For security concerns, use a private GitHub Security Advisory or contact [@niketkrishnan](https://github.com/niketkrishnan). Use synthetic fixtures only in public issues.

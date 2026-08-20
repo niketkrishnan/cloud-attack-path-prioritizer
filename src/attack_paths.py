@@ -43,20 +43,10 @@ class CloudAttackPathAnalyzer:
     def __init__(self, resources: list[Resource], relations: list[Relation]) -> None:
         self.resources = {item.resource_id: item for item in resources}
         self.graph = nx.DiGraph()
-        self.validation_warnings: list[str] = []
         for resource in resources:
             self.graph.add_node(resource.resource_id, **asdict(resource))
         for relation in relations:
-            if relation.source not in self.resources or relation.target not in self.resources:
-                self.validation_warnings.append(
-                    f"ignored relation with unknown resource: {relation.source}->{relation.target}"
-                )
-                continue
             self.graph.add_edge(relation.source, relation.target, relation=relation.relation, weight=relation.weight)
-
-    def graph_warnings(self) -> tuple[str, ...]:
-        """Return deterministic, non-sensitive fixture validation warnings."""
-        return tuple(self.validation_warnings)
 
     def find_paths(self, start_kinds: set[str] | None = None, max_hops: int = 6) -> list[PathFinding]:
         starts = [rid for rid, res in self.resources.items() if res.public or (start_kinds and res.kind in start_kinds)]
